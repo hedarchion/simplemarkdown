@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Notes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2c3e50;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .copy-logo {
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            background: #3498db;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .copy-logo:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        .copy-logo svg {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+
+        .copy-logo.copied {
+            background: #27ae60;
+        }
+
+        .mode-toggle {
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .content-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+        }
+
+        .editor, .preview {
+            flex: 1;
+            padding: 15px;
+            width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .editor {
+            border: none;
+            outline: none;
+            font-size: 16px;
+            font-family: inherit;
+            resize: none;
+            background: white;
+            min-height: 300px;
+        }
+
+        .preview {
+            background: white;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .preview.active {
+            display: block;
+        }
+
+        .editor.hidden {
+            display: none;
+        }
+
+        /* Markdown Styles */
+        .preview h1, .preview h2, .preview h3, .preview h4, .preview h5, .preview h6 {
+            margin: 16px 0 8px;
+            line-height: 1.25;
+        }
+
+        .preview h1 { font-size: 1.8em; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .preview h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+        .preview h3 { font-size: 1.25em; }
+        .preview h4 { font-size: 1.1em; }
+        .preview h5, .preview h6 { font-size: 1em; }
+
+        .preview p {
+            margin: 10px 0;
+        }
+
+        .preview ul, .preview ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        .preview li {
+            margin: 5px 0;
+        }
+
+        .preview code {
+            background: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .preview pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 15px;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .preview a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        .preview a:hover {
+            text-decoration: underline;
+        }
+
+        .preview img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Todo List Styles */
+        .preview li input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .preview li.completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        /* Responsive for super narrow screens */
+        @media (max-width: 300px) {
+            .header {
+                padding: 8px;
+            }
+            
+            .copy-logo {
+                width: 28px;
+                height: 28px;
+            }
+            
+            .copy-logo svg {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .mode-toggle {
+                padding: 6px 8px;
+                font-size: 11px;
+            }
+            
+            .editor, .preview {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .preview h1 { font-size: 1.4em; }
+            .preview h2 { font-size: 1.3em; }
+            .preview h3 { font-size: 1.2em; }
+            .preview h4 { font-size: 1.1em; }
+        }
+
+        @media (max-width: 200px) {
+            .editor, .preview {
+                padding: 8px;
+                font-size: 13px;
+            }
+            
+            .preview ul, .preview ol {
+                padding-left: 20px;
+            }
+        }
+
+        /* Status message */
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2c3e50;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="copy-logo" id="copyBtn" title="Copy all content">
+                <svg viewBox="0 0 24 24">
+                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+            </div>
+            <button class="mode-toggle" id="modeToggle">Preview</button>
+        </div>
+        
+        <div class="content-wrapper">
+            <textarea class="editor" id="editor" placeholder="Start writing... Supports markdown!
+
+# Headers
+- [ ] Todo items
+- [x] Completed items
+**bold** *italic* `code`
+
+Click the clipboard to copy"></textarea>
+            
+            <div class="preview" id="preview"></div>
+        </div>
+        
+        <div class="status" id="status"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        // Elements
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const copyBtn = document.getElementById('copyBtn');
+        const modeToggle = document.getElementById('modeToggle');
+        const status = document.getElementById('status');
+
+        // State
+        let isPreviewMode = false;
+        let todoState = new Map();
+
+        // Initialize
+        function init() {
+            // Load saved content
+            const saved = localStorage.getItem('notes-content');
+            if (saved) {
+                editor.value = saved;
+                updatePreview();
+            }
+            
+            // Event listeners
+            editor.addEventListener('input', handleInput);
+            copyBtn.addEventListener('click', copyContent);
+            modeToggle.addEventListener('click', toggleMode);
+            
+            // Parse initial todo state
+            parseTodoState(editor.value);
+        }
+
+        // Handle input with debouncing
+        let inputTimeout;
+        function handleInput() {
+            clearTimeout(inputTimeout);
+            inputTimeout = setTimeout(() => {
+                const content = editor.value;
+                localStorage.setItem('notes-content', content);
+                parseTodoState(content);
+                updatePreview();
+            }, 300);
+        }
+
+        // Parse todo items and track their state
+        function parseTodoState(content) {
+            const todoRegex = /^-\s*\[([ xX])\]\s*(.+)$/gm;
+            let match;
+            const newState = new Map();
+            
+            while ((match = todoRegex.exec(content)) !== null) {
+                const text = match[2].trim();
+                const isChecked = match[1].trim().toLowerCase() === 'x';
+                const existingState = todoState.get(text);
+                newState.set(text, existingState !== undefined ? existingState : isChecked);
+            }
+            
+            todoState = newState;
+        }
+
+        // Custom renderer for todo lists
+        const renderer = new marked.Renderer();
+        const originalListitem = renderer.listitem;
+        
+        renderer.listitem = function(text) {
+            // Check if this is a todo item
+            const todoMatch = text.match(/^\[([ xX])\]\s*(.+)$/);
+            if (todoMatch) {
+                const isChecked = todoMatch[1].trim().toLowerCase() === 'x';
+                const todoText = todoMatch[2];
+                const id = 'todo-' + Math.random().toString(36).substr(2, 9);
+                
+                // Update state if not exists
+                if (!todoState.has(todoText)) {
+                    todoState.set(todoText, isChecked);
+                }
+                
+                const checked = todoState.get(todoText) ? 'checked' : '';
+                const completed = todoState.get(todoText) ? 'completed' : '';
+                
+                return `<li class="${completed}">
+                    <input type="checkbox" id="${id}" ${checked} 
+                           onchange="window.handleTodoChange('${todoText.replace(/'/g, "\\'")}', this.checked)">
+                    <label for="${id}">${todoText}</label>
+                </li>`;
+            }
+            return originalListitem.call(this, text);
+        };
+
+        // Handle todo checkbox changes
+        window.handleTodoChange = function(text, checked) {
+            todoState.set(text, checked);
+            
+            // Update the markdown content
+            const regex = new RegExp(`^(-\\s*\\[)[ xX](\\]\\s*${escapeRegExp(text)})$`, 'gm');
+            const replacement = checked ? '$1x$2' : '$1 $2';
+            editor.value = editor.value.replace(regex, replacement);
+            
+            localStorage.setItem('notes-content', editor.value);
+            updatePreview();
+        };
+
+        // Escape regex special characters
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Update preview
+        function updatePreview() {
+            const markdown = editor.value;
+            preview.innerHTML = marked.parse(markdown, { renderer });
+        }
+
+        // Toggle between edit and preview mode
+        function toggleMode() {
+            isPreviewMode = !isPreviewMode;
+            
+            if (isPreviewMode) {
+                editor.classList.add('hidden');
+                preview.classList.add('active');
+                modeToggle.textContent = 'Edit';
+                updatePreview();
+            } else {
+                editor.classList.remove('hidden');
+                preview.classList.remove('active');
+                modeToggle.textContent = 'Preview';
+            }
+        }
+
+        // Copy content to clipboard
+        async function copyContent() {
+            try {
+                const textToCopy = editor.value;
+                await navigator.clipboard.writeText(textToCopy);
+                
+                // Visual feedback
+                copyBtn.classList.add('copied');
+                showStatus('Copied!');
+                
+                setTimeout(() => {
+                    copyBtn.classList.remove('copied');
+                }, 1000);
+                
+            } catch (err) {
+                showStatus('Copy failed');
+                console.error('Copy failed:', err);
+            }
+        }
+
+        // Show status message
+        function showStatus(message) {
+            status.textContent = message;
+            status.classList.add('show');
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 2000);
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
